@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.4.3.3</title>
+  <title>Foot Piano V2.4.3.4</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -79,10 +79,10 @@ window.addEventListener('DOMContentLoaded', () => {
     // 白鍵繪製
     for(let i=0;i<tot;i++){
       const x = i * wW;
-      const y = vO;
+      const y = highlightedKeys.has(i) ? vO + 10 : vO; // 模擬按下陷下去
       if (highlightedKeys.has(i)) {
-        ctx.fillStyle='rgba(255,255,0,0.9)'; // 黃色亮鍵
-        ctx.shadowColor = 'rgba(0,0,0,0.5)'; // 陰影效果
+        ctx.fillStyle='rgba(255,255,0,0.9)';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 8;
         ctx.shadowOffsetY = 4;
       } else {
@@ -95,7 +95,7 @@ window.addEventListener('DOMContentLoaded', () => {
       ctx.strokeRect(x,y,wW,wH);
     }
 
-    ctx.shadowColor = 'transparent'; // 清除影響
+    ctx.shadowColor = 'transparent';
 
     // 黑鍵繪製
     for(let o=0;o<oct;o++){
