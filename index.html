@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>腳跟手腕偵測（除錯版）</title>
+  <title>腳跟手腕偵測（修正版）</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video {
@@ -31,14 +31,15 @@
       cursor: pointer;
     }
   </style>
+  <!-- ✅ 正確引入 mediapipe 模組 (含 pose + camera utils) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 </head>
 <body>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
   <button id="startBtn">啟動偵測</button>
-
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
     const video = document.getElementById('video');
@@ -49,8 +50,9 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const pose = new Pose({
-      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    // ✅ 正確建立 Pose 實體
+    const pose = new Pose.Pose({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
     });
 
     pose.setOptions({
@@ -88,8 +90,6 @@
     });
 
     startBtn.addEventListener('click', async () => {
-      startBtn.disabled = true;
-      startBtn.innerText = '啟動中...';
       try {
         const camera = new Camera(video, {
           onFrame: async () => {
@@ -99,13 +99,10 @@
           height: 720
         });
         await camera.start();
-        alert('✅ 相機啟動成功');
         startBtn.style.display = 'none';
       } catch (err) {
-        console.error('Camera 啟動失敗:', err);
         alert('❌ 相機啟動失敗：' + err.message);
-        startBtn.disabled = false;
-        startBtn.innerText = '啟動偵測';
+        console.error(err);
       }
     });
   </script>
