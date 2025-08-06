@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>腳跟手腕偵測 - V1.2</title>
+  <title>腳跟手腕偵測 - V1.3</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video {
@@ -10,7 +10,7 @@
       top: 0; left: 0;
       width: 100vw; height: 100vh;
       object-fit: cover;
-      transform: scaleX(-1);
+      transform: scaleX(-1); /* 鏡像顯示 */
       z-index: 0;
     }
     canvas {
@@ -31,15 +31,14 @@
       cursor: pointer;
     }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 <body>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
   <button id="startBtn">啟動偵測</button>
-
-  <!-- ✅ 最穩定的 MediaPipe Pose 模組來源 -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
     window.addEventListener('DOMContentLoaded', () => {
@@ -51,7 +50,6 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      // ✅ 使用全域 Pose（無命名空間）
       const pose = new Pose({
         locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
       });
@@ -65,6 +63,12 @@
 
       pose.onResults(results => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 加入 canvas 鏡像轉換
+        ctx.save();
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+
         if (results.poseLandmarks) {
           const lm = results.poseLandmarks;
           const points = [
@@ -88,6 +92,8 @@
             }
           });
         }
+
+        ctx.restore(); // 還原坐標系
       });
 
       startBtn.addEventListener('click', async () => {
