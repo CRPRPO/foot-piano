@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.4</title>
+  <title>Foot Piano V3.5</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -152,10 +152,9 @@ window.addEventListener('DOMContentLoaded', () => {
         }
       });
     } else {
-      if (isKeyPressed) {
-        isKeyPressed = false;
-        currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
-      }
+      // ✅ 即使沒有偵測到手，也能進入下一鍵
+      isKeyPressed = false;
+      currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
     }
 
     ctx.restore();
