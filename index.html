@@ -1,9 +1,10 @@
-// ✅ Foot Piano V3.7：來回琶音版本
+// Foot Piano V3.8：來回琶音修正 + favicon 隱藏處理
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.7</title>
+  <title>Hand Piano V3.8</title>
+  <link rel="icon" href="data:,"> <!-- ✅ 避免 favicon.ico 404 -->
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -27,34 +28,22 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const whiteKeyNotes = [
-    'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3'
-  ];
+  const whiteKeyNotes = ['E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3'];
   const simpleNumbers = ["+3","+2","+1","7","6","5","4","3","2","1","-7","-6","-5","-4"];
   const audios = {};
-  whiteKeyNotes.forEach((note, i) => {
-    audios[i] = new Audio(`./sounds/${note}.mp3`);
-  });
+  whiteKeyNotes.forEach((note, i) => { audios[i] = new Audio(`./sounds/${note}.mp3`); });
 
   const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
   hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
   let keyParams = null;
-  let lastKeyIndices = [null, null];
-  let highlightedKeys = new Set();
-
   let currentTargetIndex = 0;
-  let direction = -1; // -1: 從高音到低音，+1: 從低音到高音
+  let direction = -1;
   let isKeyPressed = false;
   let triggerTimeout = null;
 
   function drawConnectionsAndLandmarks(landmarks) {
-    const connections = [
-      [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
-      [5,9],[9,10],[10,11],[11,12],
-      [9,13],[13,14],[14,15],[15,16],
-      [13,17],[17,18],[18,19],[19,20],[0,17]
-    ];
+    const connections = [ [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17] ];
     ctx.strokeStyle = 'lime';
     ctx.lineWidth = 2;
     connections.forEach(([a, b]) => {
@@ -80,9 +69,7 @@ window.addEventListener('DOMContentLoaded', () => {
   function drawPiano(ctx, W, H) {
     const oct = 2, wp = 7, tot = oct * wp, wW = W / tot, baseH = H / 3, wH = baseH * 1.4, vO = (H - wH) / 2;
     const bW = wW * 0.6, bH = wH * 0.6, blackOff = [0, 1, 3, 4, 5];
-
-    ctx.fillStyle = 'rgba(0,0,0,0.8)';
-    ctx.fillRect(0, vO - 5, W, 10);
+    ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(0, vO - 5, W, 10);
 
     for (let i = 0; i < tot; i++) {
       const x = i * wW;
@@ -97,18 +84,8 @@ window.addEventListener('DOMContentLoaded', () => {
         ctx.shadowColor = 'transparent';
       }
       ctx.fillRect(x, y, wW, wH);
-      ctx.strokeStyle = 'rgba(0,0,0,1)';
-      ctx.lineWidth = 4.5;
-      ctx.strokeRect(x, y, wW, wH);
-
-      ctx.save();
-      ctx.fillStyle = '#cc0000';
-      ctx.font = 'bold 56px Arial';
-      ctx.textAlign = 'center';
-      ctx.translate(x + wW / 2, y + wH - 20);
-      ctx.scale(-1, 1);
-      ctx.fillText(simpleNumbers[i], 0, 0);
-      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,1)'; ctx.lineWidth = 4.5; ctx.strokeRect(x, y, wW, wH);
+      ctx.save(); ctx.fillStyle = '#cc0000'; ctx.font = 'bold 56px Arial'; ctx.textAlign = 'center'; ctx.translate(x + wW / 2, y + wH - 20); ctx.scale(-1, 1); ctx.fillText(simpleNumbers[i], 0, 0); ctx.restore();
     }
 
     ctx.shadowColor = 'transparent';
@@ -116,8 +93,7 @@ window.addEventListener('DOMContentLoaded', () => {
       blackOff.forEach(j => {
         const i = o * wp + j;
         const x = (i + 1) * wW - bW / 2, y = vO;
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
-        ctx.fillRect(x, y, bW, bH);
+        ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(x, y, bW, bH);
       });
     }
     return { whiteKeyWidth: wW, whiteKeyXOffset: 0, whiteKeyY: vO, whiteKeyHeight: wH };
@@ -126,10 +102,7 @@ window.addEventListener('DOMContentLoaded', () => {
   hands.onResults(results => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save(); ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
-
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
-    highlightedKeys.clear();
-
     let touchedThisFrame = false;
 
     if (results.multiHandLandmarks) {
@@ -151,7 +124,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             clearTimeout(triggerTimeout);
             triggerTimeout = setTimeout(() => {
-              // 琶音方向切換：到最左或最右反轉
               if ((currentTargetIndex === 0 && direction === 1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === -1)) {
                 direction *= -1;
               }
