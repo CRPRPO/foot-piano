@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>腳跟手腕偵測 - V1.3</title>
+  <title>手掌偵測 - V2.0</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video {
@@ -32,13 +32,14 @@
     }
   </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.min.js"></script>
+  <!-- ✅ 載入 MediaPipe Hands 與 camera utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 <body>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
-  <button id="startBtn">啟動偵測</button>
+  <button id="startBtn">啟動手掌偵測</button>
 
   <script>
     window.addEventListener('DOMContentLoaded', () => {
@@ -50,57 +51,52 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      const pose = new Pose({
-        locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
       });
 
-      pose.setOptions({
-        modelComplexity: 0,
-        smoothLandmarks: true,
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
       });
 
-      pose.onResults(results => {
+      hands.onResults(results => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // 加入 canvas 鏡像轉換
         ctx.save();
         ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
+        ctx.scale(-1, 1); // 鏡像同步
 
-        if (results.poseLandmarks) {
-          const lm = results.poseLandmarks;
-          const points = [
-            { index: 29, label: '左腳跟' },
-            { index: 31, label: '右腳跟' },
-            { index: 15, label: '左手腕' },
-            { index: 16, label: '右手腕' }
-          ];
-          points.forEach(({ index, label }) => {
-            const pt = lm[index];
-            if (pt && pt.visibility > 0.5) {
+        if (results.multiHandLandmarks) {
+          for (let landmarks of results.multiHandLandmarks) {
+            for (let i = 0; i < landmarks.length; i++) {
+              const pt = landmarks[i];
               const x = pt.x * canvas.width;
               const y = pt.y * canvas.height;
+
+              // 畫紅點
               ctx.beginPath();
-              ctx.arc(x, y, 15, 0, Math.PI * 2);
+              ctx.arc(x, y, 6, 0, Math.PI * 2);
               ctx.fillStyle = 'red';
               ctx.fill();
+
+              // 編號
               ctx.fillStyle = 'white';
-              ctx.font = '16px sans-serif';
-              ctx.fillText(label, x + 10, y - 10);
+              ctx.font = '14px sans-serif';
+              ctx.fillText(i, x + 8, y - 8);
             }
-          });
+          }
         }
 
-        ctx.restore(); // 還原坐標系
+        ctx.restore();
       });
 
       startBtn.addEventListener('click', async () => {
         try {
           const camera = new Camera(video, {
             onFrame: async () => {
-              await pose.send({ image: video });
+              await hands.send({ image: video });
             },
             width: 1280,
             height: 720
