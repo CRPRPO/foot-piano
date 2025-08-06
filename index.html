@@ -2,9 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>相機畫面測試</title>
+  <title>相機畫面測試（含手腳偵測）</title>
   <style>
-    /* 讓畫面占滿整個視窗 */
     body {
       margin: 0;
       overflow: hidden;
@@ -16,8 +15,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      object-fit: cover; /* 保持比例填滿畫面 */
-      transform: scaleX(-1); /* 水平翻轉，讓畫面像鏡子一樣 */
+      object-fit: cover;
+      transform: scaleX(-1);
     }
     canvas {
       position: absolute;
@@ -27,92 +26,69 @@
   </style>
 </head>
 <body>
-  <!-- 顯示相機畫面 -->
   <video id="video" autoplay muted playsinline></video>
-
-  <!-- 之後可疊加畫面用 -->
   <canvas id="canvas"></canvas>
 
-  <!-- 引入 MediaPipe Pose 模型 -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
-
-<!-- 引入 MediaPipe 相機管理工具 -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <!-- 載入 MediaPipe Pose 模型 -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-
-    // 設定 canvas 尺寸等於視窗尺寸
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // 啟用相機（使用後鏡頭優先）
+    // ✅ 建立 Pose 偵測模型（要放在前面！）
+    const pose = new Pose({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
+
+    pose.setOptions({
+      modelComplexity: 0,
+      smoothLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    // ✅ 設定接收結果後的處理方式
+    pose.onResults(results => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (results.poseLandmarks) {
+        const lm = results.poseLandmarks;
+        const parts = [lm[15], lm[16], lm[29], lm[31]]; // 左右手腕與腳跟
+        parts.forEach(pt => {
+          const x = pt.x * canvas.width;
+          const y = pt.y * canvas.height;
+          ctx.beginPath();
+          ctx.arc(x, y, 10, 0, 2 * Math.PI);
+          ctx.fillStyle = 'red';
+          ctx.fill();
+        });
+      }
+    });
+
+    // ✅ 啟動相機並串接 pose 模型
     navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'environment' // 可改成 'user' 以使用前鏡頭
-      },
+      video: { facingMode: 'environment' },
       audio: false
     })
     .then(stream => {
-      // 將相機串流接到 video 標籤
       video.srcObject = stream;
-      // 宣告 MediaPipe camera 控制器
-const camera = new Camera(video, {
-  onFrame: async () => {
-    await pose.send({ image: video });
-  },
-  width: canvas.width,
-  height: canvas.height
-});
 
-camera.start();
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await pose.send({ image: video });
+        },
+        width: canvas.width,
+        height: canvas.height
+      });
 
-// 接收 Pose 偵測結果
-pose.onResults(results => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除畫面
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // 繪製鏡頭畫面（可省略）
-
-  if (results.poseLandmarks) {
-    const lm = results.poseLandmarks;
-
-    // ⭐ 你可以使用下列部位 (根據 MediaPipe Pose 預設編號)
-    const leftWrist = lm[15];  // 左手腕
-    const rightWrist = lm[16]; // 右手腕
-    const leftHeel = lm[29];   // 左腳跟
-    const rightHeel = lm[31];  // 右腳跟
-
-    // 🔴 在畫布上畫出這些點（紅色小圓點）
-    [leftWrist, rightWrist, leftHeel, rightHeel].forEach(point => {
-      const x = point.x * canvas.width;
-      const y = point.y * canvas.height;
-      ctx.beginPath();
-      ctx.arc(x, y, 10, 0, 2 * Math.PI);
-      ctx.fillStyle = 'red';
-      ctx.fill();
-    });
-  }
-});
-
+      camera.start();
     })
-
-      // 建立 Pose 偵測模型
-const pose = new Pose({
-  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-});
-
-// 設定模型參數
-pose.setOptions({
-  modelComplexity: 0,
-  smoothLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
-
     .catch(err => {
-      // 若相機開啟失敗，顯示錯誤
-      alert('無法啟用相機，請確認已允許權限或裝置支援。錯誤：' + err.message);
+      alert('無法啟用相機，請檢查權限或裝置支援：' + err.message);
       console.error(err);
     });
   </script>
