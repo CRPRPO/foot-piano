@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.4.3</title>
+  <title>Foot Piano V2.4.3.1</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -37,6 +37,15 @@ window.addEventListener('DOMContentLoaded', () => {
   const hands = new Hands({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
   hands.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
 
+  const landmarkLabels = [
+    'wrist',
+    'thumb_cmc','thumb_mcp','thumb_ip','thumb_tip',
+    'index_mcp','index_pip','index_dip','index_tip',
+    'middle_mcp','middle_pip','middle_dip','middle_tip',
+    'ring_mcp','ring_pip','ring_dip','ring_tip',
+    'pinky_mcp','pinky_pip','pinky_dip','pinky_tip'
+  ];
+
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [
       [0,1],[1,2],[2,3],[3,4],
@@ -63,8 +72,8 @@ window.addEventListener('DOMContentLoaded', () => {
       ctx.fillStyle = 'red';
       ctx.fill();
       ctx.fillStyle = 'white';
-      ctx.font = '12px Arial';
-      ctx.fillText(i, x + 6, y + 6);
+      ctx.font = '11px Arial';
+      ctx.fillText(`${i}:${landmarkLabels[i]}`, x + 6, y + 6);
     }
   }
 
@@ -74,8 +83,8 @@ window.addEventListener('DOMContentLoaded', () => {
     for(let i=0;i<tot;i++){
       ctx.fillStyle='rgba(255,255,255,0.6)';
       ctx.fillRect(i*wW,vO,wW,wH);
-      ctx.strokeStyle='rgba(255,255,255,1)'; // 變深
-      ctx.lineWidth = 3; // 變粗
+      ctx.strokeStyle='rgba(255,255,255,1)';
+      ctx.lineWidth = 3;
       ctx.strokeRect(i*wW,vO,wW,wH);
     }
     for(let o=0;o<oct;o++){
@@ -90,7 +99,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   let keyParams = null;
-  let lastKeyIndices = [null, null]; // 針對兩隻手獨立追蹤觸發狀態
+  let lastKeyIndices = [null, null];
 
   hands.onResults(results => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
