@@ -4,21 +4,36 @@
   <meta charset="UTF-8">
   <title>Foot Piano Prototype</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #111; }
+    body { margin: 0; overflow: hidden; background: #111; color: white; font-family: sans-serif; }
     canvas { position: absolute; top: 0; left: 0; z-index: 1; }
-    video { position: absolute; top: 0; left: 0; transform: scaleX(-1); z-index: 0; opacity: 0.7; }
+    video { position: absolute; top: 0; left: 0; transform: scaleX(-1); z-index: 0; opacity: 0.6; }
+    #startBtn {
+      position: absolute;
+      z-index: 2;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #28a745;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <video id="video" width="1280" height="720" autoplay muted></video>
   <canvas id="canvas" width="1280" height="720"></canvas>
-  
+  <button id="startBtn">啟動相機</button>
+
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const video = document.getElementById('video');
+    const startBtn = document.getElementById('startBtn');
 
     const pianoKeys = [
       { note: 'C', x: 100 },
@@ -51,7 +66,9 @@
       return pianoKeys.find(key => x >= key.x && x <= key.x + 80);
     }
 
-    const pose = new Pose({locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
+    const pose = new Pose({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
     pose.setOptions({
       modelComplexity: 0,
       smoothLandmarks: true,
@@ -63,7 +80,7 @@
     pose.onResults(results => {
       drawPianoKeys();
       if (results.poseLandmarks) {
-        const foot = results.poseLandmarks[31]; // Right foot index (heel)
+        const foot = results.poseLandmarks[31]; // Right heel
         const x = foot.x * canvas.width;
         const y = foot.y * canvas.height;
 
@@ -77,19 +94,23 @@
           audios[key.note].currentTime = 0;
           audios[key.note].play();
           lastPlayed = key.note;
-          setTimeout(() => { lastPlayed = ''; }, 300); // Prevent double trigger
+          setTimeout(() => { lastPlayed = ''; }, 300);
         }
       }
     });
 
     const camera = new Camera(video, {
       onFrame: async () => {
-        await pose.send({image: video});
+        await pose.send({ image: video });
       },
       width: 1280,
       height: 720
     });
-    camera.start();
+
+    startBtn.addEventListener('click', () => {
+      startBtn.style.display = 'none';
+      camera.start();
+    });
   </script>
 </body>
 </html>
