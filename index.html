@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V5.4.4</title>
+  <title>Foot Piano V5.5</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -11,6 +11,7 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 </head>
 <body>
   <video id="video" autoplay muted playsinline></video>
@@ -27,7 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.height = window.innerHeight;
 
   const whiteKeyNotes = ['F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'];
-  const simpleNumbers = ['-4','-5','-6','-7','1','2','3','4','5','6','7','+1','+2','+3'];
+  const simpleNumbers = ['+3','+2','+1','7','6','5','4','3','2','1','-7','-6','-5','-4'];
   const audios = {};
   whiteKeyNotes.forEach((note, i) => {
     audios[i] = new Audio(`./sounds/${note}.mp3`);
@@ -81,6 +82,16 @@ window.addEventListener('DOMContentLoaded', () => {
       ctx.restore();
     }
 
+    // 畫黑鍵 (固定位置)
+    ctx.fillStyle = '#000';
+    const blackKeyIndexes = [0, 1, 3, 4, 5, 7, 8, 10, 11];
+    const bW = wW * 0.6;
+    const bH = wH * 0.6;
+    for (let i of blackKeyIndexes) {
+      const x = (i + 1) * wW - bW / 2;
+      ctx.fillRect(x, vO, bW, bH);
+    }
+
     return { whiteKeyWidth: wW, whiteKeyXOffset: 0, whiteKeyY: vO, whiteKeyHeight: wH };
   }
 
@@ -91,34 +102,38 @@ window.addEventListener('DOMContentLoaded', () => {
     ctx.scale(-1, 1);
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
 
-    if (results.multiHandLandmarks && readyForNextTouch) {
-      results.multiHandLandmarks.forEach(lm => {
-        const pt = lm[8];
+    if (results.multiHandLandmarks) {
+      for (let landmarks of results.multiHandLandmarks) {
+        // 畫紅點與骨架
+        drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: '#0f0', lineWidth: 3 });
+        drawLandmarks(ctx, landmarks, { color: '#f00', lineWidth: 2 });
+
+        if (!readyForNextTouch) continue;
+
+        const pt = landmarks[8];
         const x = pt.x * canvas.width;
         const y = pt.y * canvas.height;
         const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
         const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
 
         const targetIndex = melody[currentNote];
-        if (i === targetIndex && withinY) {
-          if (lastTouchedIndex !== i) {
-            isKeyPressed = true;
-            readyForNextTouch = false;
-            lastTouchedIndex = i;
-            if (audios[targetIndex]) {
-              audios[targetIndex].currentTime = 0;
-              audios[targetIndex].play();
-            }
-            clearTimeout(pressTimeout);
-            pressTimeout = setTimeout(() => {
-              currentNote = (currentNote + 1) % melody.length;
-              isKeyPressed = false;
-              readyForNextTouch = true;
-              lastTouchedIndex = null;
-            }, 400);
+        if (i === targetIndex && withinY && lastTouchedIndex !== i) {
+          isKeyPressed = true;
+          readyForNextTouch = false;
+          lastTouchedIndex = i;
+          if (audios[targetIndex]) {
+            audios[targetIndex].currentTime = 0;
+            audios[targetIndex].play();
           }
+          clearTimeout(pressTimeout);
+          pressTimeout = setTimeout(() => {
+            currentNote = (currentNote + 1) % melody.length;
+            isKeyPressed = false;
+            readyForNextTouch = true;
+            lastTouchedIndex = null;
+          }, 400);
         }
-      });
+      }
     }
 
     ctx.restore();
