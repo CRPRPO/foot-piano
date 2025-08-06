@@ -59,30 +59,44 @@
         [0,17]
       ];
 
-      function drawPiano(ctx, canvasWidth, canvasHeight) {
-        const whiteKeyCount = 7;
-        const blackKeyOffsets = [0, 1, 3, 4, 5]; // C#, D#, F#, G#, A#
-        const keyWidth = canvasWidth / whiteKeyCount;
-        const keyHeight = canvasHeight / 3;
+function drawPiano(ctx, canvasWidth, canvasHeight) {
+  const octaves = 2; // 兩組八度
+  const whiteKeysPerOctave = 7;
+  const totalWhiteKeys = octaves * whiteKeysPerOctave;
 
-        // 白鍵外框
-        for (let i = 0; i < whiteKeyCount; i++) {
-          ctx.strokeStyle = 'white';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(i * keyWidth, canvasHeight - keyHeight, keyWidth, keyHeight);
-        }
+  const whiteKeyWidth = canvasWidth / totalWhiteKeys;
+  const whiteKeyHeight = canvasHeight / 3;
+  const verticalOffset = (canvasHeight - whiteKeyHeight) / 2;
 
-        // 黑鍵外框
-        const blackKeyWidth = keyWidth * 0.6;
-        const blackKeyHeight = keyHeight * 0.6;
-        for (let i of blackKeyOffsets) {
-          const x = (i + 1) * keyWidth - blackKeyWidth / 2;
-          const y = canvasHeight - keyHeight;
-          ctx.strokeStyle = 'white';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x, y, blackKeyWidth, blackKeyHeight);
-        }
-      }
+  const blackKeyWidth = whiteKeyWidth * 0.6;
+  const blackKeyHeight = whiteKeyHeight * 0.6;
+
+  // 黑鍵位置相對白鍵的位置（以每組7鍵為一單位）
+  const blackKeyOffsets = [0, 1, 3, 4, 5]; // C#, D#, F#, G#, A#
+
+  // 白鍵繪製（半透明白底＋外框）
+  for (let i = 0; i < totalWhiteKeys; i++) {
+    const x = i * whiteKeyWidth;
+    const y = verticalOffset;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(x, y, whiteKeyWidth, whiteKeyHeight);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, whiteKeyWidth, whiteKeyHeight);
+  }
+
+  // 黑鍵繪製（半透明黑，覆蓋在白鍵上方）
+  for (let octave = 0; octave < octaves; octave++) {
+    for (let j = 0; j < blackKeyOffsets.length; j++) {
+      const i = octave * whiteKeysPerOctave + blackKeyOffsets[j];
+      const x = (i + 1) * whiteKeyWidth - blackKeyWidth / 2;
+      const y = verticalOffset;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(x, y, blackKeyWidth, blackKeyHeight);
+    }
+  }
+}
+
 
       const hands = new Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
