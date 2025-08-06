@@ -1,9 +1,9 @@
-// Foot Piano V3.8：來回琶音修正 + favicon 隱藏處理
+// ✅ Foot Piano V3.9：修正 direction 切換條件（解決卡住第一鍵 E5）
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Hand Piano V3.8</title>
+  <title>Foot Piano V3.9</title>
   <link rel="icon" href="data:,"> <!-- ✅ 避免 favicon.ico 404 -->
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
@@ -124,7 +124,8 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             clearTimeout(triggerTimeout);
             triggerTimeout = setTimeout(() => {
-              if ((currentTargetIndex === 0 && direction === 1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === -1)) {
+              // ✅ 修正這裡的邏輯：反彈條件修正方向判斷
+              if ((currentTargetIndex === 0 && direction === -1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === 1)) {
                 direction *= -1;
               }
               currentTargetIndex += direction;
