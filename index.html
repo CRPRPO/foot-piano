@@ -2,13 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V5.0 - 小星星</title>
-  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/32px-Piano_Icon.png">
-  <meta property="og:title" content="Foot Piano 小星星版">
-  <meta property="og:description" content="依序練習《小星星》旋律，結合MediaPipe手勢控制的互動鋼琴">
-  <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/200px-Piano_Icon.png">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://foot-piano.vercel.app">
+  <title>Hand Piano V5.0 小星星</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -32,78 +26,97 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const melody = [
-    'C4','C4','G4','G4','A4','A4','G4',
-    'F4','F4','E4','E4','D4','D4','C4',
-    'G4','G4','F4','F4','E4','E4','D4',
-    'G4','G4','F4','F4','E4','E4','D4',
-    'C4','C4','G4','G4','A4','A4','G4',
-    'F4','F4','E4','E4','D4','D4','C4'
-  ];
-
-  const simpleNumbers = ['1','1','5','5','6','6','5','4','4','3','3','2','2','1','5','5','4','4','3','3','2','5','5','4','4','3','3','2','1','1','5','5','6','6','5','4','4','3','3','2','2','1'];
-
-  const whiteKeyNotes = ['C4','D4','E4','F4','G4','A4','B4'];
+  const whiteKeyNotes = ['F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'];
+  const simpleNumbers = ['-4','-5','-6','-7','1','2','3','4','5','6','7','+1','+2','+3'];
   const audios = {};
-  whiteKeyNotes.concat(['C5','D5','E5','F5','G5','A5','B5']).forEach(note => {
-    audios[note] = new Audio(`./sounds/${note}.mp3`);
+  whiteKeyNotes.forEach((note, i) => {
+    audios[i] = new Audio(`./sounds/${note}.mp3`);
   });
 
   const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
-  hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+  hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
   let keyParams = null;
-  let currentIndex = 0;
+  let currentNote = 0;
   let isKeyPressed = false;
-  let keyPlayed = false;
-  let triggerTimeout = null;
+  let pressTimeout = null;
+  let lastTouchedIndex = null;
+  let readyForNextTouch = true;
+
+  // 小星星音符序列 (使用正確 index)
+  const melody = [
+    4, 4, 8, 8, 9, 9, 8,
+    7, 7, 6, 6, 5, 5, 4,
+    8, 8, 7, 7, 6, 6, 5,
+    8, 8, 7, 7, 6, 6, 5,
+    4, 4, 8, 8, 9, 9, 8,
+    7, 7, 6, 6, 5, 5, 4
+  ];
 
   function drawPiano(ctx, W, H) {
-    const notes = ['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5','F5','G5','A5','B5'];
-    const wW = W / notes.length;
-    const baseH = H / 3, wH = baseH * 1.4, vO = (H - wH) / 2;
+    const tot = whiteKeyNotes.length;
+    const wW = W / tot;
+    const baseH = H / 3;
+    const wH = baseH * 1.4;
+    const vO = (H - wH) / 2;
 
-    for (let i = 0; i < notes.length; i++) {
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillRect(0, vO - 5, W, 10);
+
+    for (let i = 0; i < tot; i++) {
       const x = i * wW;
-      const y = (i === notes.indexOf(melody[currentIndex]) && isKeyPressed) ? vO - 20 : (i === notes.indexOf(melody[currentIndex]) ? vO - 10 : vO);
-      ctx.fillStyle = (i === notes.indexOf(melody[currentIndex])) ? 'rgba(255,255,0,0.9)' : 'rgba(255,255,255,0.8)';
+      const isActive = i === melody[currentNote];
+      const y = (isActive && isKeyPressed) ? vO - 20 : (isActive ? vO - 10 : vO);
+      ctx.fillStyle = isActive ? 'rgba(255,255,0,0.9)' : 'rgba(255,255,255,0.8)';
       ctx.fillRect(x, y, wW, wH);
-      ctx.strokeStyle = 'rgba(0,0,0,1)'; ctx.lineWidth = 4; ctx.strokeRect(x, y, wW, wH);
-      ctx.save(); ctx.fillStyle = '#cc0000'; ctx.font = 'bold 36px Arial'; ctx.textAlign = 'center'; ctx.translate(x + wW / 2, y + wH - 20); ctx.scale(-1, 1); ctx.fillText(notes[i], 0, 0); ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = 4.5;
+      ctx.strokeRect(x, y, wW, wH);
+      ctx.save();
+      ctx.fillStyle = '#cc0000';
+      ctx.font = 'bold 56px Arial';
+      ctx.textAlign = 'center';
+      ctx.translate(x + wW / 2, y + wH - 20);
+      ctx.scale(-1, 1);
+      ctx.fillText(simpleNumbers[i], 0, 0);
+      ctx.restore();
     }
-    return { whiteKeyWidth: wW, whiteKeyXOffset: 0, whiteKeyY: vO, whiteKeyHeight: wH, notes };
+
+    return { whiteKeyWidth: wW, whiteKeyXOffset: 0, whiteKeyY: vO, whiteKeyHeight: wH };
   }
 
   hands.onResults(results => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save(); ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+    ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
 
-    if (results.multiHandLandmarks) {
-      results.multiHandLandmarks.forEach((lm) => {
+    if (results.multiHandLandmarks && readyForNextTouch) {
+      results.multiHandLandmarks.forEach(lm => {
         const pt = lm[8];
         const x = pt.x * canvas.width;
         const y = pt.y * canvas.height;
         const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
-        const targetNote = melody[currentIndex];
-        const keyNote = keyParams.notes[i];
         const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
 
-        if (keyNote === targetNote && withinY) {
-          if (!isKeyPressed && !keyPlayed) {
-            isKeyPressed = true;
-            keyPlayed = true;
-            audios[targetNote]?.play();
-            clearTimeout(triggerTimeout);
-            triggerTimeout = setTimeout(() => {
-              currentIndex = (currentIndex + 1) % melody.length;
-              isKeyPressed = false;
-              keyPlayed = false;
-            }, 400);
-          }
+        const targetIndex = melody[currentNote];
+        if (i === targetIndex && withinY) {
+          isKeyPressed = true;
+          readyForNextTouch = false;
+          audios[targetIndex]?.currentTime = 0;
+          audios[targetIndex]?.play();
+
+          clearTimeout(pressTimeout);
+          pressTimeout = setTimeout(() => {
+            currentNote = (currentNote + 1) % melody.length;
+            isKeyPressed = false;
+            readyForNextTouch = true;
+          }, 400);
         }
       });
     }
+
     ctx.restore();
   });
 
@@ -125,4 +138,4 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-// Foot Piano V5.0：小星星旋律版，手指碰觸正確琴鍵依序播放旋律
+//小星星
