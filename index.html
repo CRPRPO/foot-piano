@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.12</title>
+  <title>Foot Piano V3.13</title>
   <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/32px-Piano_Icon.png">
   <meta property="og:title" content="Foot Piano 練習器">
   <meta property="og:description" content="透過 MediaPipe 偵測手勢，練習節奏與琶音的視覺鋼琴">
@@ -123,7 +123,8 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             clearTimeout(triggerTimeout);
             triggerTimeout = setTimeout(() => {
-              if ((currentTargetIndex === 0 && direction === 1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === -1)) {
+              // ✅ 修正方向切換條件
+              if ((currentTargetIndex === 0 && direction === -1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === 1)) {
                 direction *= -1;
               }
               currentTargetIndex += direction;
@@ -160,4 +161,4 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-// Foot Piano V3.12：從 F3 開始向上爬音至 E5，再回頭向下爬音，來回循環；每格停留 0.4 秒
+// Foot Piano V3.13：修正方向條件，確保來回琶音順利執行
