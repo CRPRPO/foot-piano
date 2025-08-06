@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>腳跟手腕偵測（最終修正）</title>
+  <title>腳跟手腕偵測 - V1.2</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video {
@@ -31,79 +31,81 @@
       cursor: pointer;
     }
   </style>
-
-  <!-- ✅ 正確載入 mediapipe pose -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 <body>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
   <button id="startBtn">啟動偵測</button>
 
+  <!-- ✅ 最穩定的 MediaPipe Pose 模組來源 -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
   <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const startBtn = document.getElementById('startBtn');
+    window.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const startBtn = document.getElementById('startBtn');
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
 
-    // ✅ 使用正確的 Pose 建構方式（全域 Pose）
-    const pose = new Pose({
-      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-    });
+      // ✅ 使用全域 Pose（無命名空間）
+      const pose = new Pose({
+        locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
 
-    pose.setOptions({
-      modelComplexity: 0,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+      pose.setOptions({
+        modelComplexity: 0,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
 
-    pose.onResults(results => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (results.poseLandmarks) {
-        const lm = results.poseLandmarks;
-        const points = [
-          { index: 29, label: '左腳跟' },
-          { index: 31, label: '右腳跟' },
-          { index: 15, label: '左手腕' },
-          { index: 16, label: '右手腕' }
-        ];
-        points.forEach(({ index, label }) => {
-          const pt = lm[index];
-          if (pt && pt.visibility > 0.5) {
-            const x = pt.x * canvas.width;
-            const y = pt.y * canvas.height;
-            ctx.beginPath();
-            ctx.arc(x, y, 15, 0, Math.PI * 2);
-            ctx.fillStyle = 'red';
-            ctx.fill();
-            ctx.fillStyle = 'white';
-            ctx.font = '16px sans-serif';
-            ctx.fillText(label, x + 10, y - 10);
-          }
-        });
-      }
-    });
+      pose.onResults(results => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (results.poseLandmarks) {
+          const lm = results.poseLandmarks;
+          const points = [
+            { index: 29, label: '左腳跟' },
+            { index: 31, label: '右腳跟' },
+            { index: 15, label: '左手腕' },
+            { index: 16, label: '右手腕' }
+          ];
+          points.forEach(({ index, label }) => {
+            const pt = lm[index];
+            if (pt && pt.visibility > 0.5) {
+              const x = pt.x * canvas.width;
+              const y = pt.y * canvas.height;
+              ctx.beginPath();
+              ctx.arc(x, y, 15, 0, Math.PI * 2);
+              ctx.fillStyle = 'red';
+              ctx.fill();
+              ctx.fillStyle = 'white';
+              ctx.font = '16px sans-serif';
+              ctx.fillText(label, x + 10, y - 10);
+            }
+          });
+        }
+      });
 
-    startBtn.addEventListener('click', async () => {
-      try {
-        const camera = new Camera(video, {
-          onFrame: async () => {
-            await pose.send({ image: video });
-          },
-          width: 1280,
-          height: 720
-        });
-        await camera.start();
-        startBtn.style.display = 'none';
-      } catch (err) {
-        alert('❌ 相機啟動失敗：' + err.message);
-        console.error(err);
-      }
+      startBtn.addEventListener('click', async () => {
+        try {
+          const camera = new Camera(video, {
+            onFrame: async () => {
+              await pose.send({ image: video });
+            },
+            width: 1280,
+            height: 720
+          });
+          await camera.start();
+          startBtn.style.display = 'none';
+        } catch (err) {
+          alert('❌ 相機啟動失敗：' + err.message);
+          console.error(err);
+        }
+      });
     });
   </script>
 </body>
