@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.4.2</title>
+  <title>Foot Piano V2.4.3</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -27,7 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.height = window.innerHeight;
 
   const whiteKeyNotes = [
-    'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3' // 音階由左至右升高
+    'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3'
   ];
   const audios = {};
   whiteKeyNotes.forEach((note,i) => {
@@ -74,7 +74,8 @@ window.addEventListener('DOMContentLoaded', () => {
     for(let i=0;i<tot;i++){
       ctx.fillStyle='rgba(255,255,255,0.6)';
       ctx.fillRect(i*wW,vO,wW,wH);
-      ctx.strokeStyle='white';ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(255,255,255,1)'; // 變深
+      ctx.lineWidth = 3; // 變粗
       ctx.strokeRect(i*wW,vO,wW,wH);
     }
     for(let o=0;o<oct;o++){
@@ -89,7 +90,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   let keyParams = null;
-  let lastKeyIndex = null; // 新增：追蹤上次播放位置
+  let lastKeyIndices = [null, null]; // 針對兩隻手獨立追蹤觸發狀態
 
   hands.onResults(results => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -98,29 +99,28 @@ window.addEventListener('DOMContentLoaded', () => {
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
 
     if(results.multiHandLandmarks) {
-      for(let lm of results.multiHandLandmarks){
+      results.multiHandLandmarks.forEach((lm, handIndex) => {
         drawConnectionsAndLandmarks(lm);
         const pt = lm[8];
         const x = pt.x * canvas.width;
         const y = pt.y * canvas.height;
-        // 白鍵碰撞偵測
         if(y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight) {
           const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
           if(i >= 0 && i < whiteKeyNotes.length) {
-            if (lastKeyIndex !== i) {  // 只有新進入時播放
+            if (lastKeyIndices[handIndex] !== i) {
               audios[i].currentTime = 0;
               audios[i].play();
-              lastKeyIndex = i;
+              lastKeyIndices[handIndex] = i;
             }
           } else {
-            lastKeyIndex = null;
+            lastKeyIndices[handIndex] = null;
           }
         } else {
-          lastKeyIndex = null;
+          lastKeyIndices[handIndex] = null;
         }
-      }
+      });
     } else {
-      lastKeyIndex = null;
+      lastKeyIndices = [null, null];
     }
     ctx.restore();
   });
