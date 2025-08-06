@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>手腳偵測測試</title>
+  <title>相機畫面測試</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video {
@@ -10,13 +10,11 @@
       top: 0; left: 0;
       width: 100vw; height: 100vh;
       object-fit: cover;
-      transform: scaleX(-1); /* 鏡像顯示 */
-      z-index: 0;
+      transform: scaleX(-1);
     }
     canvas {
       position: absolute;
       top: 0; left: 0;
-      z-index: 1;
     }
   </style>
 </head>
@@ -24,83 +22,21 @@
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
 
-  <!-- MediaPipe Pose 模組與工具 -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-
-    // 調整 canvas 大小與畫面一致
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // 初始化 MediaPipe Pose 模組
-    const pose = new Pose({
-      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-    });
-
-    // 設定偵測參數
-    pose.setOptions({
-      modelComplexity: 0,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-
-    // 接收偵測結果的處理函式
-    pose.onResults(results => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (results.poseLandmarks) {
-        const landmarks = results.poseLandmarks;
-
-        // 要偵測的部位（腳跟與手腕）
-        const targets = [29, 31, 15, 16]; // left_heel, right_heel, left_wrist, right_wrist
-
-        targets.forEach(index => {
-          const pt = landmarks[index];
-          if (pt.visibility > 0.5) { // 可見度高才畫出
-            const x = pt.x * canvas.width;
-            const y = pt.y * canvas.height;
-
-            ctx.beginPath();
-            ctx.arc(x, y, 15, 0, Math.PI * 2);
-            ctx.fillStyle = 'red';
-            ctx.fill();
-
-            // 標註部位名稱
-            ctx.fillStyle = 'white';
-            ctx.font = '16px sans-serif';
-            ctx.fillText(index === 29 ? '左腳跟' :
-                         index === 31 ? '右腳跟' :
-                         index === 15 ? '左手腕' :
-                         '右手腕', x + 10, y - 10);
-          }
-        });
-      }
-    });
-
-    // 啟動相機並串接 MediaPipe Pose
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await pose.send({ image: video });
-      },
-      width: 1280,
-      height: 720
-    });
-
-    // 啟動相機
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }, // 後鏡頭優先
+      video: { facingMode: 'environment' },
       audio: false
-    }).then(stream => {
+    })
+    .then(stream => {
       video.srcObject = stream;
-      camera.start(); // 將串流畫面送入 pose 偵測
-    }).catch(err => {
+    })
+    .catch(err => {
       alert('無法啟用相機：' + err.message);
       console.error(err);
     });
