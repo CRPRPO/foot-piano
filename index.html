@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>腳跟手腕偵測</title>
+  <title>手腳偵測（穩定版）</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video {
@@ -18,13 +18,25 @@
       top: 0; left: 0;
       z-index: 1;
     }
+    button {
+      position: absolute;
+      top: 20px; left: 20px;
+      padding: 10px 20px;
+      z-index: 2;
+      font-size: 18px;
+      border-radius: 6px;
+      border: none;
+      background: #28a745;
+      color: white;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
+  <button id="startBtn">啟動偵測</button>
 
-  <!-- 載入 MediaPipe Pose 模組 -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
@@ -32,12 +44,12 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
 
-    // 畫布尺寸與視窗一致
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // 初始化 MediaPipe Pose
+    // 初始化 pose
     const pose = new Pose({
       locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
     });
@@ -45,39 +57,30 @@
     pose.setOptions({
       modelComplexity: 0,
       smoothLandmarks: true,
-      enableSegmentation: false,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
     });
 
-    // 設定收到 Pose 偵測結果後的處理
+    // 當 pose 辨識結果出來
     pose.onResults(results => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       if (results.poseLandmarks) {
-        const landmarks = results.poseLandmarks;
-
-        // 想追蹤的部位：腳跟（29, 31）與手腕（15, 16）
+        const lm = results.poseLandmarks;
         const points = [
           { index: 29, label: '左腳跟' },
           { index: 31, label: '右腳跟' },
           { index: 15, label: '左手腕' },
           { index: 16, label: '右手腕' }
         ];
-
         points.forEach(({ index, label }) => {
-          const pt = landmarks[index];
+          const pt = lm[index];
           if (pt && pt.visibility > 0.5) {
             const x = pt.x * canvas.width;
             const y = pt.y * canvas.height;
-
-            // 畫紅點
             ctx.beginPath();
             ctx.arc(x, y, 15, 0, Math.PI * 2);
             ctx.fillStyle = 'red';
             ctx.fill();
-
-            // 畫標籤
             ctx.fillStyle = 'white';
             ctx.font = '16px sans-serif';
             ctx.fillText(label, x + 10, y - 10);
@@ -86,25 +89,17 @@
       }
     });
 
-    // 啟用相機串流
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await pose.send({ image: video });
-      },
-      width: 1280,
-      height: 720
-    });
-
-    // 啟動相機並啟動 pose 偵測
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' },
-      audio: false
-    }).then(stream => {
-      video.srcObject = stream;
+    // 點下按鈕後再啟動 camera（避免靜默封鎖）
+    startBtn.addEventListener('click', () => {
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await pose.send({ image: video });
+        },
+        width: 1280,
+        height: 720
+      });
       camera.start();
-    }).catch(err => {
-      alert('無法啟用相機：' + err.message);
-      console.error(err);
+      startBtn.style.display = 'none';
     });
   </script>
 </body>
