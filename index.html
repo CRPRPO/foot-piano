@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.4.3.1</title>
+  <title>Foot Piano V2.4.3.2</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -37,15 +37,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const hands = new Hands({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
   hands.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
 
-  const landmarkLabels = [
-    'wrist',
-    'thumb_cmc','thumb_mcp','thumb_ip','thumb_tip',
-    'index_mcp','index_pip','index_dip','index_tip',
-    'middle_mcp','middle_pip','middle_dip','middle_tip',
-    'ring_mcp','ring_pip','ring_dip','ring_tip',
-    'pinky_mcp','pinky_pip','pinky_dip','pinky_tip'
-  ];
-
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [
       [0,1],[1,2],[2,3],[3,4],
@@ -73,7 +64,7 @@ window.addEventListener('DOMContentLoaded', () => {
       ctx.fill();
       ctx.fillStyle = 'white';
       ctx.font = '11px Arial';
-      ctx.fillText(`${i}:${landmarkLabels[i]}`, x + 6, y + 6);
+      ctx.fillText(`${i}`, x + 6, y + 6); // 移除 landmark 名稱，只留數字
     }
   }
 
@@ -81,17 +72,17 @@ window.addEventListener('DOMContentLoaded', () => {
     const oct=2, wp=7, tot=oct*wp, wW=W/tot, baseH=H/3, wH=baseH*1.4, vO=(H-wH)/2;
     const bW=wW*0.6, bH=wH*0.6, blackOff=[0,1,3,4,5];
     for(let i=0;i<tot;i++){
-      ctx.fillStyle='rgba(255,255,255,0.6)';
+      ctx.fillStyle='rgba(255,255,255,0.8)'; // 白鍵透明度調整為 0.8
       ctx.fillRect(i*wW,vO,wW,wH);
-      ctx.strokeStyle='rgba(255,255,255,1)';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle='rgba(0,0,0,1)'; // 外框改為黑色
+      ctx.lineWidth = 4.5; // 粗度為原本的 1.5 倍
       ctx.strokeRect(i*wW,vO,wW,wH);
     }
     for(let o=0;o<oct;o++){
       blackOff.forEach(j=>{
         const i=o*wp+j;
         const x=(i+1)*wW-bW/2, y=vO;
-        ctx.fillStyle='rgba(0,0,0,0.6)';
+        ctx.fillStyle='rgba(0,0,0,0.8)'; // 黑鍵透明度調整為 0.8
         ctx.fillRect(x,y,bW,bH);
       });
     }
