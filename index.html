@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>相機畫面測試（含手腳偵測）</title>
+  <title>Foot Piano Camera Test</title>
   <style>
     body {
       margin: 0;
@@ -29,7 +29,7 @@
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas"></canvas>
 
-  <!-- 載入 MediaPipe Pose 模型 -->
+  <!-- 引入 MediaPipe Pose 與 Camera 工具 -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
@@ -40,7 +40,7 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // ✅ 建立 Pose 偵測模型（要放在前面！）
+    // ✅ 建立 Pose 模型（務必放在 getUserMedia 前）
     const pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
     });
@@ -52,13 +52,15 @@
       minTrackingConfidence: 0.5
     });
 
-    // ✅ 設定接收結果後的處理方式
+    // ✅ 當模型產生結果時，畫出紅點
     pose.onResults(results => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (results.poseLandmarks) {
         const lm = results.poseLandmarks;
-        const parts = [lm[15], lm[16], lm[29], lm[31]]; // 左右手腕與腳跟
-        parts.forEach(pt => {
+
+        // 取得四個部位：左手腕、右手腕、左腳跟、右腳跟
+        const keypoints = [lm[15], lm[16], lm[29], lm[31]];
+        keypoints.forEach(pt => {
           const x = pt.x * canvas.width;
           const y = pt.y * canvas.height;
           ctx.beginPath();
@@ -69,9 +71,9 @@
       }
     });
 
-    // ✅ 啟動相機並串接 pose 模型
+    // ✅ 啟用相機並連結至 Pose 模型
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' },
+      video: { facingMode: 'environment' }, // 改為 'user' 使用前鏡頭
       audio: false
     })
     .then(stream => {
@@ -88,7 +90,7 @@
       camera.start();
     })
     .catch(err => {
-      alert('無法啟用相機，請檢查權限或裝置支援：' + err.message);
+      alert('❌ 無法啟用相機：' + err.message);
       console.error(err);
     });
   </script>
