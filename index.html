@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.5.1</title>
+  <title>Foot Piano V2.5.2</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -29,7 +29,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const whiteKeyNotes = [
     'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3'
   ];
-  const simpleNumbers = ["+3","+2","+1","7","6","5","4","3","2","1","-7","-6","-5","-4"];
+  const simpleNumbers = ["-4","-5","-6","-7","1","2","3","4","5","6","7","+1","+2","+3"].reverse();
 
   const audios = {};
   whiteKeyNotes.forEach((note,i) => {
@@ -98,13 +98,11 @@ window.addEventListener('DOMContentLoaded', () => {
       ctx.lineWidth = 4.5;
       ctx.strokeRect(x,y,wW,wH);
 
-      ctx.save();
-      ctx.scale(-1, 1);
-      ctx.fillStyle = '#003366';
-      ctx.font = 'bold 28px Arial';
+      // 修改後的簡譜數字樣式
+      ctx.fillStyle = '#cc0000'; // 溫暖紅色
+      ctx.font = 'bold 56px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(simpleNumbers[i], (-1)*(x + wW / 2), y + 40);
-      ctx.restore();
+      ctx.fillText(simpleNumbers[i], x + wW / 2, y + wH - 20);
     }
 
     ctx.shadowColor = 'transparent';
