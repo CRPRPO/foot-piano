@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.4.3.4</title>
+  <title>Foot Piano V2.4.3.5</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -76,10 +76,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const oct=2, wp=7, tot=oct*wp, wW=W/tot, baseH=H/3, wH=baseH*1.4, vO=(H-wH)/2;
     const bW=wW*0.6, bH=wH*0.6, blackOff=[0,1,3,4,5];
 
+    // 增加黑鍵頂部遮蓋線條（防止黑鍵移動造成穿幫）
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillRect(0, vO - 5, W, 10); // 高度為兩倍黑鍵厚度
+
     // 白鍵繪製
     for(let i=0;i<tot;i++){
       const x = i * wW;
-      const y = highlightedKeys.has(i) ? vO + 10 : vO; // 模擬按下陷下去
+      const y = highlightedKeys.has(i) ? vO - 10 : vO; // ← 模擬按下往上位移
       if (highlightedKeys.has(i)) {
         ctx.fillStyle='rgba(255,255,0,0.9)';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
