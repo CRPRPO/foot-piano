@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>手腳偵測（穩定版）</title>
+  <title>腳跟手腕偵測（除錯版）</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video {
@@ -49,7 +49,6 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // 初始化 pose
     const pose = new Pose({
       locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
     });
@@ -61,7 +60,6 @@
       minTrackingConfidence: 0.5
     });
 
-    // 當 pose 辨識結果出來
     pose.onResults(results => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (results.poseLandmarks) {
@@ -89,17 +87,26 @@
       }
     });
 
-    // 點下按鈕後再啟動 camera（避免靜默封鎖）
-    startBtn.addEventListener('click', () => {
-      const camera = new Camera(video, {
-        onFrame: async () => {
-          await pose.send({ image: video });
-        },
-        width: 1280,
-        height: 720
-      });
-      camera.start();
-      startBtn.style.display = 'none';
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      startBtn.innerText = '啟動中...';
+      try {
+        const camera = new Camera(video, {
+          onFrame: async () => {
+            await pose.send({ image: video });
+          },
+          width: 1280,
+          height: 720
+        });
+        await camera.start();
+        alert('✅ 相機啟動成功');
+        startBtn.style.display = 'none';
+      } catch (err) {
+        console.error('Camera 啟動失敗:', err);
+        alert('❌ 相機啟動失敗：' + err.message);
+        startBtn.disabled = false;
+        startBtn.innerText = '啟動偵測';
+      }
     });
   </script>
 </body>
