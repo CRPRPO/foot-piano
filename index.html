@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Hand Piano V5.2</title>
+  <title>Foot Piano V5.3小星星</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -40,8 +40,8 @@ window.addEventListener('DOMContentLoaded', () => {
   let currentNote = 0;
   let isKeyPressed = false;
   let pressTimeout = null;
-  let lastTouchedIndex = null;
   let readyForNextTouch = true;
+  let lastTouchedIndex = null;
 
   // 小星星音符序列 (使用正確 index)
   const melody = [
@@ -92,36 +92,33 @@ window.addEventListener('DOMContentLoaded', () => {
     ctx.scale(-1, 1);
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
 
-    if (results.multiHandLandmarks) {
-      let fingerInside = false;
+    if (results.multiHandLandmarks && readyForNextTouch) {
       results.multiHandLandmarks.forEach(lm => {
         const pt = lm[8];
         const x = pt.x * canvas.width;
         const y = pt.y * canvas.height;
         const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
         const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
-        const targetIndex = melody[currentNote];
 
+        const targetIndex = melody[currentNote];
         if (i === targetIndex && withinY) {
-          fingerInside = true;
-          if (!isKeyPressed && readyForNextTouch) {
+          if (lastTouchedIndex !== i) {
             isKeyPressed = true;
             readyForNextTouch = false;
+            lastTouchedIndex = i;
             audios[targetIndex]?.currentTime = 0;
             audios[targetIndex]?.play();
+
             clearTimeout(pressTimeout);
             pressTimeout = setTimeout(() => {
               currentNote = (currentNote + 1) % melody.length;
               isKeyPressed = false;
               readyForNextTouch = true;
+              lastTouchedIndex = null;
             }, 400);
           }
         }
       });
-
-      if (!fingerInside) {
-        isKeyPressed = false;
-      }
     }
 
     ctx.restore();
