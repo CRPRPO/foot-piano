@@ -1,10 +1,15 @@
-// ✅ Foot Piano V3.9：修正 direction 切換條件（解決卡住第一鍵 E5）
+// Foot Piano V3.10：加上鋼琴 logo 與 OG 標籤，改善預覽顯示效果
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.9</title>
-  <link rel="icon" href="data:,"> <!-- ✅ 避免 favicon.ico 404 -->
+  <title>Foot Piano V3.10</title>
+  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/32px-Piano_Icon.png"> <!-- ✅ 改為真實鋼琴 icon -->
+  <meta property="og:title" content="Foot Piano 練習器">
+  <meta property="og:description" content="透過 MediaPipe 偵測手勢，練習節奏與琶音的視覺鋼琴">
+  <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/200px-Piano_Icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://foot-piano.vercel.app">
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -124,8 +129,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             clearTimeout(triggerTimeout);
             triggerTimeout = setTimeout(() => {
-              // ✅ 修正這裡的邏輯：反彈條件修正方向判斷
-              if ((currentTargetIndex === 0 && direction === -1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === 1)) {
+              if ((currentTargetIndex === 0 && direction === 1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === -1)) {
                 direction *= -1;
               }
               currentTargetIndex += direction;
