@@ -2,10 +2,10 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.13</title>
+  <title>Foot Piano V4</title>
   <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/32px-Piano_Icon.png">
   <meta property="og:title" content="Foot Piano 練習器">
-  <meta property="og:description" content="透過 MediaPipe 偵測手勢，練習節奏與琶音的視覺鋼琴">
+  <meta property="og:description" content="透過 MediaPipe 偵測手勢，練習節奏與跳音的視覺鋼琴">
   <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/200px-Piano_Icon.png">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://foot-piano.vercel.app">
@@ -41,8 +41,8 @@ window.addEventListener('DOMContentLoaded', () => {
   hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
   let keyParams = null;
-  let currentTargetIndex = whiteKeyNotes.length - 1; // F3 起始（最右）
-  let direction = -1; // 往左爬
+  const arpeggioIndices = [13,11,9,7,5,3,1,0,2,4,6,8,10,12];
+  let currentArpIndex = 0;
   let isKeyPressed = false;
   let keyPlayed = false;
   let triggerTimeout = null;
@@ -74,8 +74,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     for (let i = 0; i < tot; i++) {
       const x = i * wW;
-      const y = (i === currentTargetIndex && isKeyPressed) ? vO - 20 : (i === currentTargetIndex ? vO - 10 : vO);
-      if (i === currentTargetIndex) {
+      const y = (i === arpeggioIndices[currentArpIndex] && isKeyPressed) ? vO - 20 : (i === arpeggioIndices[currentArpIndex] ? vO - 10 : vO);
+      if (i === arpeggioIndices[currentArpIndex]) {
         ctx.fillStyle = 'rgba(255,255,0,0.9)';
         ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
       } else {
@@ -112,22 +112,19 @@ window.addEventListener('DOMContentLoaded', () => {
         const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
         const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
 
-        if (i === currentTargetIndex && withinY) {
+        if (i === arpeggioIndices[currentArpIndex] && withinY) {
           touchedThisFrame = true;
           if (!isKeyPressed && !keyPlayed) {
             isKeyPressed = true;
             keyPlayed = true;
-            if (audios[currentTargetIndex]) {
-              audios[currentTargetIndex].currentTime = 0;
-              audios[currentTargetIndex].play();
+            const index = arpeggioIndices[currentArpIndex];
+            if (audios[index]) {
+              audios[index].currentTime = 0;
+              audios[index].play();
             }
             clearTimeout(triggerTimeout);
             triggerTimeout = setTimeout(() => {
-              // ✅ 修正方向切換條件
-              if ((currentTargetIndex === 0 && direction === -1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === 1)) {
-                direction *= -1;
-              }
-              currentTargetIndex += direction;
+              currentArpIndex = (currentArpIndex + 1) % arpeggioIndices.length;
               isKeyPressed = false;
               keyPlayed = false;
             }, 400);
@@ -161,4 +158,4 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-// Foot Piano V3.13：修正方向條件，確保來回琶音順利執行
+// Foot Piano V4：間隔跳音琶音，順序為 F3→A3→C4→E4→G4→B4→D5→E5→C5→A4→F4→D4→B3→G3→F3 周而復始
