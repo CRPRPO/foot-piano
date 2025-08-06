@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Hand Piano V3.1</title>
+  <title>Foot Piano V3.2</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -27,9 +27,9 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.height = window.innerHeight;
 
   const whiteKeyNotes = [
-    'F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'
+    'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3'
   ];
-  const simpleNumbers = ["-4","-5","-6","-7","1","2","3","4","5","6","7","+1","+2","+3"];
+  const simpleNumbers = ["+3","+2","+1","7","6","5","4","3","2","1","-7","-6","-5","-4"];
   const audios = {};
   whiteKeyNotes.forEach((note,i) => {
     audios[i] = new Audio(`./sounds/${note}.mp3`);
@@ -42,8 +42,9 @@ window.addEventListener('DOMContentLoaded', () => {
   let lastKeyIndices = [null, null];
   let highlightedKeys = new Set();
 
-  let currentTargetIndex = 0; // 當前要觸碰的白鍵編號（從最左到最右）
-  let isKeyPressed = false;  // 記錄是否正在按著目標鍵（避免重複觸發）
+  // 互動新增邏輯
+  let currentTargetIndex = 0;
+  let isKeyPressed = false;
 
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [
@@ -125,7 +126,7 @@ window.addEventListener('DOMContentLoaded', () => {
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
     highlightedKeys.clear();
 
-    if(results.multiHandLandmarks) {  //[備用邏輯] 如果畫面中沒偵測到手，直接也當作「離開鍵」
+    if(results.multiHandLandmarks) {
       results.multiHandLandmarks.forEach((lm, handIndex) => {
         drawConnectionsAndLandmarks(lm);
         const pt = lm[8];
@@ -134,16 +135,16 @@ window.addEventListener('DOMContentLoaded', () => {
         const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
         const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
 
-        if(i === currentTargetIndex && withinY) {  //只有當食指指尖落在目前目標鍵上（i === currentTargetIndex）且落在白鍵範圍內，才會播放聲音。
+        if(i === currentTargetIndex && withinY) {
           if (!isKeyPressed) {
-            isKeyPressed = true; // 觸碰到正確鍵才設定按下
+            isKeyPressed = true;
             audios[currentTargetIndex]?.currentTime = 0;
-            audios[currentTargetIndex]?.play(); // 播放聲音
+            audios[currentTargetIndex]?.play();
           }
         } else {
           if (isKeyPressed && i !== currentTargetIndex) {
-            isKeyPressed = false;  //// 手指離開了正確的按鍵
-            currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;  // 切換到下一鍵
+            isKeyPressed = false;
+            currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
           }
         }
       });
@@ -158,6 +159,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   startBtn.addEventListener('click', async()=>{
     try{
+      await navigator.mediaDevices.getUserMedia({ video: true }); // 強制請求鏡頭權限
       const camera = new Camera(video,{ onFrame: async()=>await hands.send({image:video}), width:1280, height:720 });
       await camera.start();
       startBtn.style.display='none';
