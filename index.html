@@ -4,36 +4,24 @@
   <meta charset="UTF-8">
   <title>Foot Piano Prototype</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #111; color: white; font-family: sans-serif; }
+    body { margin: 0; overflow: hidden; background: #111; }
     canvas { position: absolute; top: 0; left: 0; z-index: 1; }
-    video { position: absolute; top: 0; left: 0; transform: scaleX(-1); z-index: 0; opacity: 0.6; }
-    #startBtn {
-      position: absolute;
-      z-index: 2;
-      top: 20px;
-      left: 20px;
-      padding: 10px 20px;
-      font-size: 18px;
-      background: #28a745;
-      border: none;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
-    }
+    video { position: absolute; top: 0; left: 0; transform: scaleX(-1); z-index: 0; opacity: 0.7; }
+    button { position: absolute; top: 20px; left: 20px; z-index: 2; font-size: 18px; padding: 10px 20px; border-radius: 8px; border: none; background: #28a745; color: white; cursor: pointer; }
   </style>
 </head>
 <body>
-  <video id="video" width="1280" height="720" autoplay muted></video>
+  <video id="video" width="1280" height="720" autoplay muted playsinline></video>
   <canvas id="canvas" width="1280" height="720"></canvas>
-  <button id="startBtn">啟動相機</button>
+  <button id="startButton">啟動鏡頭</button>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   <script>
+    const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const video = document.getElementById('video');
-    const startBtn = document.getElementById('startBtn');
+    const startButton = document.getElementById('startButton');
 
     const pianoKeys = [
       { note: 'C', x: 100 },
@@ -57,7 +45,8 @@
         ctx.fillStyle = '#fff';
         ctx.fillRect(key.x, 600, 80, 100);
         ctx.fillStyle = '#000';
-        ctx.fillText(key.note, key.x + 30, 660);
+        ctx.font = '20px sans-serif';
+        ctx.fillText(key.note, key.x + 25, 660);
       });
     }
 
@@ -69,6 +58,7 @@
     const pose = new Pose({
       locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
     });
+
     pose.setOptions({
       modelComplexity: 0,
       smoothLandmarks: true,
@@ -77,10 +67,11 @@
     });
 
     let lastPlayed = '';
+
     pose.onResults(results => {
       drawPianoKeys();
       if (results.poseLandmarks) {
-        const foot = results.poseLandmarks[31]; // Right heel
+        const foot = results.poseLandmarks[31]; // right heel
         const x = foot.x * canvas.width;
         const y = foot.y * canvas.height;
 
@@ -107,9 +98,9 @@
       height: 720
     });
 
-    startBtn.addEventListener('click', () => {
-      startBtn.style.display = 'none';
+    startButton.addEventListener('click', () => {
       camera.start();
+      startButton.style.display = 'none';
     });
   </script>
 </body>
