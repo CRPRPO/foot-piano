@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.5.7</title>
+  <title>Hand Piano V3.1</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -27,10 +27,9 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.height = window.innerHeight;
 
   const whiteKeyNotes = [
-    'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3'
+    'F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'
   ];
-  const simpleNumbers = ["+3","+2","+1","7","6","5","4","3","2","1","-7","-6","-5","-4"];
-
+  const simpleNumbers = ["-4","-5","-6","-7","1","2","3","4","5","6","7","+1","+2","+3"];
   const audios = {};
   whiteKeyNotes.forEach((note,i) => {
     audios[i] = new Audio(`./sounds/${note}.mp3`);
@@ -43,14 +42,13 @@ window.addEventListener('DOMContentLoaded', () => {
   let lastKeyIndices = [null, null];
   let highlightedKeys = new Set();
 
+  let currentTargetIndex = 0; // 當前要觸碰的白鍵編號（從最左到最右）
+  let isKeyPressed = false;  // 記錄是否正在按著目標鍵（避免重複觸發）
+
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [
-      [0,1],[1,2],[2,3],[3,4],
-      [0,5],[5,6],[6,7],[7,8],
-      [5,9],[9,10],[10,11],[11,12],
-      [9,13],[13,14],[14,15],[15,16],
-      [13,17],[17,18],[18,19],[19,20],
-      [0,17]
+      [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
+      [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]
     ];
     ctx.strokeStyle = 'lime';
     ctx.lineWidth = 2;
@@ -83,8 +81,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     for(let i=0;i<tot;i++){
       const x = i * wW;
-      const y = highlightedKeys.has(i) ? vO - 10 : vO;
-      if (highlightedKeys.has(i)) {
+      const y = (i === currentTargetIndex && isKeyPressed) ? vO - 20 : (i === currentTargetIndex ? vO - 10 : vO);
+      if (i === currentTargetIndex) {
         ctx.fillStyle='rgba(255,255,0,0.9)';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 8;
@@ -109,7 +107,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     ctx.shadowColor = 'transparent';
-
     for(let o=0;o<oct;o++){
       blackOff.forEach(j=>{
         const i=o*wp+j;
@@ -128,30 +125,33 @@ window.addEventListener('DOMContentLoaded', () => {
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
     highlightedKeys.clear();
 
-    if(results.multiHandLandmarks) {
+    if(results.multiHandLandmarks) {  //[備用邏輯] 如果畫面中沒偵測到手，直接也當作「離開鍵」
       results.multiHandLandmarks.forEach((lm, handIndex) => {
         drawConnectionsAndLandmarks(lm);
         const pt = lm[8];
         const x = pt.x * canvas.width;
         const y = pt.y * canvas.height;
-        if(y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight) {
-          const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
-          if(i >= 0 && i < whiteKeyNotes.length) {
-            highlightedKeys.add(i);
-            if (lastKeyIndices[handIndex] !== i) {
-              audios[i].currentTime = 0;
-              audios[i].play();
-              lastKeyIndices[handIndex] = i;
-            }
-          } else {
-            lastKeyIndices[handIndex] = null;
+        const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
+        const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
+
+        if(i === currentTargetIndex && withinY) {  //只有當食指指尖落在目前目標鍵上（i === currentTargetIndex）且落在白鍵範圍內，才會播放聲音。
+          if (!isKeyPressed) {
+            isKeyPressed = true; // 觸碰到正確鍵才設定按下
+            audios[currentTargetIndex]?.currentTime = 0;
+            audios[currentTargetIndex]?.play(); // 播放聲音
           }
         } else {
-          lastKeyIndices[handIndex] = null;
+          if (isKeyPressed && i !== currentTargetIndex) {
+            isKeyPressed = false;  //// 手指離開了正確的按鍵
+            currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;  // 切換到下一鍵
+          }
         }
       });
     } else {
-      lastKeyIndices = [null, null];
+      if (isKeyPressed) {
+        isKeyPressed = false;
+        currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
+      }
     }
     ctx.restore();
   });
