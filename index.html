@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.4.1</title>
+  <title>Foot Piano V2.4.2</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -26,7 +26,9 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const whiteKeyNotes = ['F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'];
+  const whiteKeyNotes = [
+    'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3' // 音階由左至右升高
+  ];
   const audios = {};
   whiteKeyNotes.forEach((note,i) => {
     audios[i] = new Audio(`./sounds/${note}.mp3`);
@@ -87,6 +89,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   let keyParams = null;
+  let lastKeyIndex = null; // 新增：追蹤上次播放位置
 
   hands.onResults(results => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -104,11 +107,20 @@ window.addEventListener('DOMContentLoaded', () => {
         if(y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight) {
           const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
           if(i >= 0 && i < whiteKeyNotes.length) {
-            audios[i].currentTime = 0;
-            audios[i].play();
+            if (lastKeyIndex !== i) {  // 只有新進入時播放
+              audios[i].currentTime = 0;
+              audios[i].play();
+              lastKeyIndex = i;
+            }
+          } else {
+            lastKeyIndex = null;
           }
+        } else {
+          lastKeyIndex = null;
         }
       }
+    } else {
+      lastKeyIndex = null;
     }
     ctx.restore();
   });
