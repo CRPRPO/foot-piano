@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.4.3.2</title>
+  <title>Foot Piano V2.4.3.3</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -37,6 +37,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const hands = new Hands({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
   hands.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
 
+  let keyParams = null;
+  let lastKeyIndices = [null, null];
+  let highlightedKeys = new Set();
+
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [
       [0,1],[1,2],[2,3],[3,4],
@@ -64,39 +68,53 @@ window.addEventListener('DOMContentLoaded', () => {
       ctx.fill();
       ctx.fillStyle = 'white';
       ctx.font = '11px Arial';
-      ctx.fillText(`${i}`, x + 6, y + 6); // 移除 landmark 名稱，只留數字
+      ctx.fillText(`${i}`, x + 6, y + 6);
     }
   }
 
   function drawPiano(ctx, W, H) {
     const oct=2, wp=7, tot=oct*wp, wW=W/tot, baseH=H/3, wH=baseH*1.4, vO=(H-wH)/2;
     const bW=wW*0.6, bH=wH*0.6, blackOff=[0,1,3,4,5];
+
+    // 白鍵繪製
     for(let i=0;i<tot;i++){
-      ctx.fillStyle='rgba(255,255,255,0.8)'; // 白鍵透明度調整為 0.8
-      ctx.fillRect(i*wW,vO,wW,wH);
-      ctx.strokeStyle='rgba(0,0,0,1)'; // 外框改為黑色
-      ctx.lineWidth = 4.5; // 粗度為原本的 1.5 倍
-      ctx.strokeRect(i*wW,vO,wW,wH);
+      const x = i * wW;
+      const y = vO;
+      if (highlightedKeys.has(i)) {
+        ctx.fillStyle='rgba(255,255,0,0.9)'; // 黃色亮鍵
+        ctx.shadowColor = 'rgba(0,0,0,0.5)'; // 陰影效果
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 4;
+      } else {
+        ctx.fillStyle='rgba(255,255,255,0.8)';
+        ctx.shadowColor = 'transparent';
+      }
+      ctx.fillRect(x,y,wW,wH);
+      ctx.strokeStyle='rgba(0,0,0,1)';
+      ctx.lineWidth = 4.5;
+      ctx.strokeRect(x,y,wW,wH);
     }
+
+    ctx.shadowColor = 'transparent'; // 清除影響
+
+    // 黑鍵繪製
     for(let o=0;o<oct;o++){
       blackOff.forEach(j=>{
         const i=o*wp+j;
         const x=(i+1)*wW-bW/2, y=vO;
-        ctx.fillStyle='rgba(0,0,0,0.8)'; // 黑鍵透明度調整為 0.8
+        ctx.fillStyle='rgba(0,0,0,0.8)';
         ctx.fillRect(x,y,bW,bH);
       });
     }
     return { whiteKeyWidth:wW, whiteKeyXOffset:0, whiteKeyY:vO, whiteKeyHeight:wH };
   }
 
-  let keyParams = null;
-  let lastKeyIndices = [null, null];
-
   hands.onResults(results => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save(); ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
 
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
+    highlightedKeys.clear();
 
     if(results.multiHandLandmarks) {
       results.multiHandLandmarks.forEach((lm, handIndex) => {
@@ -107,6 +125,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if(y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight) {
           const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
           if(i >= 0 && i < whiteKeyNotes.length) {
+            highlightedKeys.add(i);
             if (lastKeyIndices[handIndex] !== i) {
               audios[i].currentTime = 0;
               audios[i].play();
