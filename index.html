@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.11</title>
+  <title>Foot Piano V3.12</title>
   <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Piano_Icon.png/32px-Piano_Icon.png">
   <meta property="og:title" content="Foot Piano 練習器">
   <meta property="og:description" content="透過 MediaPipe 偵測手勢，練習節奏與琶音的視覺鋼琴">
@@ -41,16 +41,15 @@ window.addEventListener('DOMContentLoaded', () => {
   hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
   let keyParams = null;
-  let currentTargetIndex = 0;
-  let direction = -1;
+  let currentTargetIndex = whiteKeyNotes.length - 1; // F3 起始（最右）
+  let direction = -1; // 往左爬
   let isKeyPressed = false;
   let keyPlayed = false;
   let triggerTimeout = null;
 
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [ [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17] ];
-    ctx.strokeStyle = 'lime';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'lime'; ctx.lineWidth = 2;
     connections.forEach(([a, b]) => {
       ctx.beginPath();
       ctx.moveTo(landmarks[a].x * canvas.width, landmarks[a].y * canvas.height);
@@ -61,12 +60,9 @@ window.addEventListener('DOMContentLoaded', () => {
       const pt = landmarks[i];
       const x = pt.x * canvas.width;
       const y = pt.y * canvas.height;
-      ctx.beginPath();
-      ctx.arc(x, y, 5, 0, 2 * Math.PI);
-      ctx.fillStyle = 'red';
-      ctx.fill();
-      ctx.fillStyle = 'white';
-      ctx.font = '11px Arial';
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red'; ctx.fill();
+      ctx.fillStyle = 'white'; ctx.font = '11px Arial';
       ctx.fillText(`${i}`, x + 6, y + 6);
     }
   }
@@ -133,7 +129,7 @@ window.addEventListener('DOMContentLoaded', () => {
               currentTargetIndex += direction;
               isKeyPressed = false;
               keyPlayed = false;
-            }, 200);
+            }, 400);
           }
         }
       });
@@ -164,4 +160,4 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-//Foot Piano V3.11：修正初始按鍵（E5）觸發後卡住問題
+// Foot Piano V3.12：從 F3 開始向上爬音至 E5，再回頭向下爬音，來回循環；每格停留 0.4 秒
