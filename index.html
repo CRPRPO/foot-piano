@@ -1,106 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano Prototype</title>
+  <title>相機畫面測試</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #111; }
-    canvas { position: absolute; top: 0; left: 0; z-index: 1; }
-    video { position: absolute; top: 0; left: 0; transform: scaleX(-1); z-index: 0; opacity: 0.7; }
-    button { position: absolute; top: 20px; left: 20px; z-index: 2; font-size: 18px; padding: 10px 20px; border-radius: 8px; border: none; background: #28a745; color: white; cursor: pointer; }
+    /* 讓畫面占滿整個視窗 */
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover; /* 保持比例填滿畫面 */
+      transform: scaleX(-1); /* 水平翻轉，讓畫面像鏡子一樣 */
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
   </style>
 </head>
 <body>
-  <video id="video" width="1280" height="720" autoplay muted playsinline></video>
-  <canvas id="canvas" width="1280" height="720"></canvas>
-  <button id="startButton">啟動鏡頭</button>
+  <!-- 顯示相機畫面 -->
+  <video id="video" autoplay muted playsinline></video>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469242/pose.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <!-- 之後可疊加畫面用 -->
+  <canvas id="canvas"></canvas>
+
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const startButton = document.getElementById('startButton');
 
-    const pianoKeys = [
-      { note: 'C', x: 100 },
-      { note: 'D', x: 200 },
-      { note: 'E', x: 300 },
-      { note: 'F', x: 400 },
-      { note: 'G', x: 500 },
-      { note: 'A', x: 600 },
-      { note: 'B', x: 700 },
-      { note: 'C5', x: 800 }
-    ];
+    // 設定 canvas 尺寸等於視窗尺寸
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    const audios = {};
-    pianoKeys.forEach(key => {
-      audios[key.note] = new Audio(`https://cdn.jsdelivr.net/gh/johnyman999/piano-notes/${key.note}.mp3`);
-    });
-
-    function drawPianoKeys() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      pianoKeys.forEach(key => {
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(key.x, 600, 80, 100);
-        ctx.fillStyle = '#000';
-        ctx.font = '20px sans-serif';
-        ctx.fillText(key.note, key.x + 25, 660);
-      });
-    }
-
-    function checkKeyHit(x, y) {
-      if (y < 600 || y > 700) return null;
-      return pianoKeys.find(key => x >= key.x && x <= key.x + 80);
-    }
-
-    const pose = new Pose({
-      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-    });
-
-    pose.setOptions({
-      modelComplexity: 0,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-
-    let lastPlayed = '';
-
-    pose.onResults(results => {
-      drawPianoKeys();
-      if (results.poseLandmarks) {
-        const foot = results.poseLandmarks[31]; // right heel
-        const x = foot.x * canvas.width;
-        const y = foot.y * canvas.height;
-
-        ctx.beginPath();
-        ctx.arc(x, y, 15, 0, 2 * Math.PI);
-        ctx.fillStyle = 'red';
-        ctx.fill();
-
-        const key = checkKeyHit(x, y);
-        if (key && key.note !== lastPlayed) {
-          audios[key.note].currentTime = 0;
-          audios[key.note].play();
-          lastPlayed = key.note;
-          setTimeout(() => { lastPlayed = ''; }, 300);
-        }
-      }
-    });
-
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await pose.send({ image: video });
+    // 啟用相機（使用後鏡頭優先）
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'environment' // 可改成 'user' 以使用前鏡頭
       },
-      width: 1280,
-      height: 720
-    });
-
-    startButton.addEventListener('click', () => {
-      camera.start();
-      startButton.style.display = 'none';
+      audio: false
+    })
+    .then(stream => {
+      // 將相機串流接到 video 標籤
+      video.srcObject = stream;
+    })
+    .catch(err => {
+      // 若相機開啟失敗，顯示錯誤
+      alert('無法啟用相機，請確認已允許權限或裝置支援。錯誤：' + err.message);
+      console.error(err);
     });
   </script>
 </body>
