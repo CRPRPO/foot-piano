@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V5.4.1</title>
+  <title>Foot Piano V5.4.2</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -43,6 +43,7 @@ window.addEventListener('DOMContentLoaded', () => {
   let readyForNextTouch = true;
   let lastTouchedIndex = null;
 
+  // 小星星旋律音符序列
   const melody = [
     4, 4, 8, 8, 9, 9, 8,
     7, 7, 6, 6, 5, 5, 4,
@@ -130,7 +131,7 @@ window.addEventListener('DOMContentLoaded', () => {
         width: 1280,
         height: 720
       });
-      await camera.start();
+      camera.start();  // ✅ 注意這裡，移除 await 前面的錯誤語法
       startBtn.style.display = 'none';
     } catch (err) {
       alert('相機啟動失敗：' + err.message);
@@ -139,5 +140,6 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
 </body>
 </html>
