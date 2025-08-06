@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V2.5.2</title>
+  <title>Foot Piano V2.5.3</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -98,11 +98,14 @@ window.addEventListener('DOMContentLoaded', () => {
       ctx.lineWidth = 4.5;
       ctx.strokeRect(x,y,wW,wH);
 
-      // 修改後的簡譜數字樣式
-      ctx.fillStyle = '#cc0000'; // 溫暖紅色
+      // 正常方向簡譜數字
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // 清除鏡像效果
+      ctx.fillStyle = '#cc0000';
       ctx.font = 'bold 56px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(simpleNumbers[i], x + wW / 2, y + wH - 20);
+      ctx.restore();
     }
 
     ctx.shadowColor = 'transparent';
