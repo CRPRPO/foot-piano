@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V5.4.2</title>
+  <title>Foot Piano V5.4.4</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -105,9 +105,10 @@ window.addEventListener('DOMContentLoaded', () => {
             isKeyPressed = true;
             readyForNextTouch = false;
             lastTouchedIndex = i;
-            audios[targetIndex]?.currentTime = 0;
-            audios[targetIndex]?.play();
-
+            if (audios[targetIndex]) {
+              audios[targetIndex].currentTime = 0;
+              audios[targetIndex].play();
+            }
             clearTimeout(pressTimeout);
             pressTimeout = setTimeout(() => {
               currentNote = (currentNote + 1) % melody.length;
@@ -123,16 +124,23 @@ window.addEventListener('DOMContentLoaded', () => {
     ctx.restore();
   });
 
-  startBtn.addEventListener('click', () => {
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await hands.send({ image: video });
-      },
-      width: 1280,
-      height: 720
-    });
-    camera.start();
-    startBtn.style.display = 'none';
+  startBtn.addEventListener('click', async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await hands.send({ image: video });
+        },
+        width: 1280,
+        height: 720
+      });
+      camera.start();
+      startBtn.style.display = 'none';
+    } catch (err) {
+      alert('無法開啟相機：' + err.message);
+    }
   });
 });
 </script>
