@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.3</title>
+  <title>Foot Piano V3.4</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -31,12 +31,12 @@ window.addEventListener('DOMContentLoaded', () => {
   ];
   const simpleNumbers = ["+3","+2","+1","7","6","5","4","3","2","1","-7","-6","-5","-4"];
   const audios = {};
-  whiteKeyNotes.forEach((note,i) => {
+  whiteKeyNotes.forEach((note, i) => {
     audios[i] = new Audio(`./sounds/${note}.mp3`);
   });
 
-  const hands = new Hands({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
-  hands.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+  const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+  hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
   let keyParams = null;
   let lastKeyIndices = [null, null];
@@ -47,12 +47,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [
-      [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
-      [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]
+      [0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],
+      [5,9],[9,10],[10,11],[11,12],
+      [9,13],[13,14],[14,15],[15,16],
+      [13,17],[17,18],[18,19],[19,20],[0,17]
     ];
     ctx.strokeStyle = 'lime';
     ctx.lineWidth = 2;
-    connections.forEach(([a,b]) => {
+    connections.forEach(([a, b]) => {
       ctx.beginPath();
       ctx.moveTo(landmarks[a].x * canvas.width, landmarks[a].y * canvas.height);
       ctx.lineTo(landmarks[b].x * canvas.width, landmarks[b].y * canvas.height);
@@ -73,28 +75,28 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function drawPiano(ctx, W, H) {
-    const oct=2, wp=7, tot=oct*wp, wW=W/tot, baseH=H/3, wH=baseH*1.4, vO=(H-wH)/2;
-    const bW=wW*0.6, bH=wH*0.6, blackOff=[0,1,3,4,5];
+    const oct = 2, wp = 7, tot = oct * wp, wW = W / tot, baseH = H / 3, wH = baseH * 1.4, vO = (H - wH) / 2;
+    const bW = wW * 0.6, bH = wH * 0.6, blackOff = [0, 1, 3, 4, 5];
 
     ctx.fillStyle = 'rgba(0,0,0,0.8)';
     ctx.fillRect(0, vO - 5, W, 10);
 
-    for(let i=0;i<tot;i++){
+    for (let i = 0; i < tot; i++) {
       const x = i * wW;
       const y = (i === currentTargetIndex && isKeyPressed) ? vO - 20 : (i === currentTargetIndex ? vO - 10 : vO);
       if (i === currentTargetIndex) {
-        ctx.fillStyle='rgba(255,255,0,0.9)';
+        ctx.fillStyle = 'rgba(255,255,0,0.9)';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 8;
         ctx.shadowOffsetY = 4;
       } else {
-        ctx.fillStyle='rgba(255,255,255,0.8)';
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
         ctx.shadowColor = 'transparent';
       }
-      ctx.fillRect(x,y,wW,wH);
-      ctx.strokeStyle='rgba(0,0,0,1)';
+      ctx.fillRect(x, y, wW, wH);
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
       ctx.lineWidth = 4.5;
-      ctx.strokeRect(x,y,wW,wH);
+      ctx.strokeRect(x, y, wW, wH);
 
       ctx.save();
       ctx.fillStyle = '#cc0000';
@@ -107,15 +109,15 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     ctx.shadowColor = 'transparent';
-    for(let o=0;o<oct;o++){
-      blackOff.forEach(j=>{
-        const i=o*wp+j;
-        const x=(i+1)*wW-bW/2, y=vO;
-        ctx.fillStyle='rgba(0,0,0,0.8)';
-        ctx.fillRect(x,y,bW,bH);
+    for (let o = 0; o < oct; o++) {
+      blackOff.forEach(j => {
+        const i = o * wp + j;
+        const x = (i + 1) * wW - bW / 2, y = vO;
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(x, y, bW, bH);
       });
     }
-    return { whiteKeyWidth:wW, whiteKeyXOffset:0, whiteKeyY:vO, whiteKeyHeight:wH };
+    return { whiteKeyWidth: wW, whiteKeyXOffset: 0, whiteKeyY: vO, whiteKeyHeight: wH };
   }
 
   hands.onResults(results => {
@@ -125,7 +127,7 @@ window.addEventListener('DOMContentLoaded', () => {
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
     highlightedKeys.clear();
 
-    if(results.multiHandLandmarks) {
+    if (results.multiHandLandmarks) {
       results.multiHandLandmarks.forEach((lm, handIndex) => {
         drawConnectionsAndLandmarks(lm);
         const pt = lm[8];
@@ -134,11 +136,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
         const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
 
-        if(i === currentTargetIndex && withinY) {
+        if (i === currentTargetIndex && withinY) {
           if (!isKeyPressed) {
             isKeyPressed = true;
-            audios[currentTargetIndex]?.currentTime = 0;
-            audios[currentTargetIndex]?.play();
+            if (audios[currentTargetIndex]) {
+              audios[currentTargetIndex].currentTime = 0;
+              audios[currentTargetIndex].play();
+            }
           }
         } else {
           if (isKeyPressed && i !== currentTargetIndex) {
@@ -153,17 +157,21 @@ window.addEventListener('DOMContentLoaded', () => {
         currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
       }
     }
+
     ctx.restore();
   });
 
-  // ✅ 改回無 getUserMedia 強制權限請求版本
-  startBtn.addEventListener('click', async()=>{
-    try{
-      const camera = new Camera(video,{ onFrame: async()=>await hands.send({image:video}), width:1280, height:720 });
+  startBtn.addEventListener('click', async () => {
+    try {
+      const camera = new Camera(video, {
+        onFrame: async () => await hands.send({ image: video }),
+        width: 1280,
+        height: 720
+      });
       await camera.start();
-      startBtn.style.display='none';
-    }catch(err){
-      alert('相機啟動失敗：'+err.message);
+      startBtn.style.display = 'none';
+    } catch (err) {
+      alert('相機啟動失敗：' + err.message);
       console.error(err);
     }
   });
