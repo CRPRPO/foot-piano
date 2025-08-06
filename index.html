@@ -1,8 +1,9 @@
+// ✅ Foot Piano V3.7：來回琶音版本
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Hand Piano V3.6</title>
+  <title>Foot Piano V3.7</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -43,6 +44,7 @@ window.addEventListener('DOMContentLoaded', () => {
   let highlightedKeys = new Set();
 
   let currentTargetIndex = 0;
+  let direction = -1; // -1: 從高音到低音，+1: 從低音到高音
   let isKeyPressed = false;
   let triggerTimeout = null;
 
@@ -131,7 +133,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let touchedThisFrame = false;
 
     if (results.multiHandLandmarks) {
-      results.multiHandLandmarks.forEach((lm, handIndex) => {
+      results.multiHandLandmarks.forEach((lm) => {
         drawConnectionsAndLandmarks(lm);
         const pt = lm[8];
         const x = pt.x * canvas.width;
@@ -149,9 +151,13 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             clearTimeout(triggerTimeout);
             triggerTimeout = setTimeout(() => {
-              currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
+              // 琶音方向切換：到最左或最右反轉
+              if ((currentTargetIndex === 0 && direction === 1) || (currentTargetIndex === whiteKeyNotes.length - 1 && direction === -1)) {
+                direction *= -1;
+              }
+              currentTargetIndex += direction;
               isKeyPressed = false;
-            }, 200); // 0.2 秒後切換
+            }, 200);
           }
         }
       });
