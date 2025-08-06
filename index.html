@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Foot Piano V3.5</title>
+  <title>Hand Piano V3.6</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
@@ -44,6 +44,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   let currentTargetIndex = 0;
   let isKeyPressed = false;
+  let triggerTimeout = null;
 
   function drawConnectionsAndLandmarks(landmarks) {
     const connections = [
@@ -127,6 +128,8 @@ window.addEventListener('DOMContentLoaded', () => {
     keyParams = drawPiano(ctx, canvas.width, canvas.height);
     highlightedKeys.clear();
 
+    let touchedThisFrame = false;
+
     if (results.multiHandLandmarks) {
       results.multiHandLandmarks.forEach((lm, handIndex) => {
         drawConnectionsAndLandmarks(lm);
@@ -137,24 +140,26 @@ window.addEventListener('DOMContentLoaded', () => {
         const withinY = y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight;
 
         if (i === currentTargetIndex && withinY) {
+          touchedThisFrame = true;
           if (!isKeyPressed) {
             isKeyPressed = true;
             if (audios[currentTargetIndex]) {
               audios[currentTargetIndex].currentTime = 0;
               audios[currentTargetIndex].play();
             }
-          }
-        } else {
-          if (isKeyPressed && i !== currentTargetIndex) {
-            isKeyPressed = false;
-            currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
+            clearTimeout(triggerTimeout);
+            triggerTimeout = setTimeout(() => {
+              currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
+              isKeyPressed = false;
+            }, 200); // 0.2 秒後切換
           }
         }
       });
-    } else {
-      // ✅ 即使沒有偵測到手，也能進入下一鍵
+    }
+
+    if (!touchedThisFrame) {
+      clearTimeout(triggerTimeout);
       isKeyPressed = false;
-      currentTargetIndex = (currentTargetIndex + 1) % whiteKeyNotes.length;
     }
 
     ctx.restore();
