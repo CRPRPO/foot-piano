@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>Foot Piano V2.5.7</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 0; }
+    canvas { position: absolute; top: 0; left: 0; z-index: 1; }
+    button { position: absolute; top: 20px; left: 20px; z-index: 2; padding: 10px 20px; font-size: 18px; border: none; border-radius: 6px; background: #28a745; color: #fff; cursor: pointer; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+<body>
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas"></canvas>
+  <button id="startBtn">啟動手掌偵測</button>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const startBtn = document.getElementById('startBtn');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const whiteKeyNotes = [
+    'E5','D5','C5','B4','A4','G4','F4','E4','D4','C4','B3','A3','G3','F3'
+  ];
+  const simpleNumbers = ["+3","+2","+1","7","6","5","4","3","2","1","-7","-6","-5","-4"];
+
+  const audios = {};
+  whiteKeyNotes.forEach((note,i) => {
+    audios[i] = new Audio(`./sounds/${note}.mp3`);
+  });
+
+  const hands = new Hands({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+  hands.setOptions({ maxNumHands:2, modelComplexity:1, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+
+  let keyParams = null;
+  let lastKeyIndices = [null, null];
+  let highlightedKeys = new Set();
+
+  function drawConnectionsAndLandmarks(landmarks) {
+    const connections = [
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [5,9],[9,10],[10,11],[11,12],
+      [9,13],[13,14],[14,15],[15,16],
+      [13,17],[17,18],[18,19],[19,20],
+      [0,17]
+    ];
+    ctx.strokeStyle = 'lime';
+    ctx.lineWidth = 2;
+    connections.forEach(([a,b]) => {
+      ctx.beginPath();
+      ctx.moveTo(landmarks[a].x * canvas.width, landmarks[a].y * canvas.height);
+      ctx.lineTo(landmarks[b].x * canvas.width, landmarks[b].y * canvas.height);
+      ctx.stroke();
+    });
+    for (let i = 0; i < landmarks.length; i++) {
+      const pt = landmarks[i];
+      const x = pt.x * canvas.width;
+      const y = pt.y * canvas.height;
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red';
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = '11px Arial';
+      ctx.fillText(`${i}`, x + 6, y + 6);
+    }
+  }
+
+  function drawPiano(ctx, W, H) {
+    const oct=2, wp=7, tot=oct*wp, wW=W/tot, baseH=H/3, wH=baseH*1.4, vO=(H-wH)/2;
+    const bW=wW*0.6, bH=wH*0.6, blackOff=[0,1,3,4,5];
+
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillRect(0, vO - 5, W, 10);
+
+    for(let i=0;i<tot;i++){
+      const x = i * wW;
+      const y = highlightedKeys.has(i) ? vO - 10 : vO;
+      if (highlightedKeys.has(i)) {
+        ctx.fillStyle='rgba(255,255,0,0.9)';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 4;
+      } else {
+        ctx.fillStyle='rgba(255,255,255,0.8)';
+        ctx.shadowColor = 'transparent';
+      }
+      ctx.fillRect(x,y,wW,wH);
+      ctx.strokeStyle='rgba(0,0,0,1)';
+      ctx.lineWidth = 4.5;
+      ctx.strokeRect(x,y,wW,wH);
+
+      ctx.save();
+      ctx.fillStyle = '#cc0000';
+      ctx.font = 'bold 56px Arial';
+      ctx.textAlign = 'center';
+      ctx.translate(x + wW / 2, y + wH - 20);
+      ctx.scale(-1, 1);
+      ctx.fillText(simpleNumbers[i], 0, 0);
+      ctx.restore();
+    }
+
+    ctx.shadowColor = 'transparent';
+
+    for(let o=0;o<oct;o++){
+      blackOff.forEach(j=>{
+        const i=o*wp+j;
+        const x=(i+1)*wW-bW/2, y=vO;
+        ctx.fillStyle='rgba(0,0,0,0.8)';
+        ctx.fillRect(x,y,bW,bH);
+      });
+    }
+    return { whiteKeyWidth:wW, whiteKeyXOffset:0, whiteKeyY:vO, whiteKeyHeight:wH };
+  }
+
+  hands.onResults(results => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save(); ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+
+    keyParams = drawPiano(ctx, canvas.width, canvas.height);
+    highlightedKeys.clear();
+
+    if(results.multiHandLandmarks) {
+      results.multiHandLandmarks.forEach((lm, handIndex) => {
+        drawConnectionsAndLandmarks(lm);
+        const pt = lm[8];
+        const x = pt.x * canvas.width;
+        const y = pt.y * canvas.height;
+        if(y > keyParams.whiteKeyY && y < keyParams.whiteKeyY + keyParams.whiteKeyHeight) {
+          const i = Math.floor((x - keyParams.whiteKeyXOffset) / keyParams.whiteKeyWidth);
+          if(i >= 0 && i < whiteKeyNotes.length) {
+            highlightedKeys.add(i);
+            if (lastKeyIndices[handIndex] !== i) {
+              audios[i].currentTime = 0;
+              audios[i].play();
+              lastKeyIndices[handIndex] = i;
+            }
+          } else {
+            lastKeyIndices[handIndex] = null;
+          }
+        } else {
+          lastKeyIndices[handIndex] = null;
+        }
+      });
+    } else {
+      lastKeyIndices = [null, null];
+    }
+    ctx.restore();
+  });
+
+  startBtn.addEventListener('click', async()=>{
+    try{
+      const camera = new Camera(video,{ onFrame: async()=>await hands.send({image:video}), width:1280, height:720 });
+      await camera.start();
+      startBtn.style.display='none';
+    }catch(err){
+      alert('相機啟動失敗：'+err.message);
+      console.error(err);
+    }
+  });
+});
+</script>
+</body>
+</html>
